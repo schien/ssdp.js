@@ -1,0 +1,269 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+-->
+<head>
+  <title>Test for SSDP.js</title>
+  <script type="text/javascript" src="https://raw.githubusercontent.com/schien/ssdp.js/master/src/ssdp.js"></script>
+<script type="text/javascript">
+
+// XXX fake udp socket api for test
+function UDPSocket(options) {
+  this._addressReuse = options.addressReuse || true;
+  this._localAddress = options.localAddress || '127.0.0.1';
+  this._localPort = options.localPort || 0;
+  this._loopback = options.loopback || false;
+}
+
+UDPSocket.prototype = {
+  _remoteAddress: null,
+  _remotePort: null,
+  _readyState: 'closed',
+  _bufferAmount: 0,
+
+  get localAddress() {
+    return this._localAddress || '';
+  },
+
+  get localPort() {
+    return this._localPort || 0;
+  },
+
+  get remoteAddress() {
+    return this._remoteAddress || '';
+  },
+
+  get remotePort() {
+    return this._remotePort || 0;
+  },
+
+  get addressReuse() {
+    return this._addressReuse || false;
+  },
+
+  get loopback() {
+    return this._loopback || false;
+  },
+
+  get bufferAmount() {
+    return this._bufferAmount || 0;
+  },
+
+  get readyState() {
+    return this._readyState;
+  },
+
+  set ondrain(callback) {},
+  set onerror(callback) {},
+  set onmessage(callback) {
+    //XXX for test
+    window.testOnMessage = callback;
+  },
+
+  close: function() { console.log('udp-socket::close'); },
+  suspend: function() {},
+  resume: function() {},
+  joinMulticastGroup: function(multicastGroupAddress) {},
+  leaveMulticastGroup: function(multicastGroupAddress) {},
+  send: function(data, remoteAddress, remotePort) {
+    remoteAddress = remoteAddress || this.remoteAddress;
+    remotePort = remotePort || this.remotePort;
+    console.log('udp-socket::send');
+//    console.log('udp-socket::send to ' + remoteAddress + ':' + remotePort + ' - ' + data);
+    //XXX test code
+    window.testSend(data, remoteAddress, remotePort);
+  },
+};
+
+
+function runTest() {
+
+  function testAddServiceRecords(records) {
+    records = [].concat(records);
+    var msgs = [];
+    records.forEach(function(record) {
+      const msgNotify = 'HTTP/1.1 200 OK\r\n' +
+                        'CACHE-CONTROL: max-age=10\r\n' +
+                        'DATE: ' + new Date().toUTCString() + '\r\n' +
+                        'LOCATION: ' + record.location + '\r\n' +
+                        'ST: ' + record.type.substr(5) + '\r\n' +
+                        'USN: uuid:device-UUID::upnp:rootdevice\r\n';
+      msgs.push(msgNotify);
+    });
+    window.testSend = function(data, address, port) {
+      msgs.forEach(function(msg) {
+        window.testOnMessage(msg);
+      });
+    };
+    SSDPService.search();
+  }
+
+  const dummyType1 = 'upnp:urn:schemas-upnp-org:service:dummy:1';
+  const dummyType2 = 'upnp:urn:schemas-upnp-org:service:dummy:2';
+  const nonSupportType = 'zeroconf:_boxee-jsonrpc._tcp';
+  const fakeServices = [
+    {
+      id: 'uuid:bc0997f2-d613-43b1-93f5-03d7f3a86f30::urn:upnp-org:serviceId:dummy:1',
+      name: 'upnp:urn:upnp-org:serviceId:dummy:1',
+      type: dummyType1,
+      url: '/dummy1/Control',
+      deviceId: 'uuid:bc0997f2-d613-43b1-93f5-03d7f3a86f30',
+      eventsUrl: '/dummy1/Event',
+      location: 'https://raw.githubusercontent.com/schien/ssdp.js/master/test/dummy1-desc-1.xml',
+    },
+    {
+      id: 'uuid:7fae0ee7-87ba-4e44-a286-fcaef39be0d1::urn:upnp-org:serviceId:dummy:1',
+      name: 'upnp:urn:upnp-org:serviceId:dummy:1',
+      type: dummyType1,
+      url: '/dummy1/Control',
+      deviceId: 'uuid:7fae0ee7-87ba-4e44-a286-fcaef39be0d1',
+      location: 'https://raw.githubusercontent.com/schien/ssdp.js/master/test/dummy1-desc-2.xml',
+    },
+    {
+      id: 'uuid:cc93d8e6-6b8b-4f60-87ca-228c36b5b0e8::urn:upnp-org:serviceId:dummy:2',
+      name: 'upnp:urn:upnp-org:serviceId:dummy:2',
+      type: dummyType2,
+      url: '/dummy2/Control',
+      deviceId: '/dummy2/Event',
+      location: 'https://raw.githubusercontent.com/schien/ssdp.js/master/test/dummy2-desc-1.xml',
+    },
+    {
+      id: 'uuid:85d06f83-c967-428a-a0df-bf30cb4f4920::urn:upnp-org:serviceId:dummy:1',
+      name: 'upnp:urn:upnp-org:serviceId:dummy:1',
+      type: dummyType1,
+      url: '/dummy1/Control',
+      deviceId: 'uuid:85d06f83-c967-428a-a0df-bf30cb4f4920',
+      eventsUrl: '/dummy1/Event',
+      location: 'https://raw.githubusercontent.com/schien/ssdp.js/master/test/dummy1-desc-3.xml',
+    },
+  ];
+
+  function is(value, expect, str) {
+    var prefix = 'TEST-PASS';
+    if (value !== expect) {
+      prefix = 'TEST-FAIL';
+    }
+    console.log(prefix + ' - ' + str + ': ' + value + ', ' + expect);
+  }
+  function info(str) {
+    console.log('TEST-INFO - ' + str);
+  }
+  function error( e ) {
+    console.log( "Error occurred: " + e.name );
+  }
+
+  navigator.getNetworkServices(dummyType1)
+  .then(function(services) {
+    info('STEP 1 - add 1 service');
+    is(services.length, 0, 'expect no service');
+    var promise = new Promise(function(resolve, reject) {
+      services.addEventListener('servicefound', function _servicefound(e) {
+        services.removeEventListener('servicefound', _servicefound);
+        is(e.type, 'servicefound', 'receive servicefound event');
+        is(services.servicesAvailable, 1, 'expect 1 service available');
+        is(services[0].id, fakeServices[0].id, 'expected service id');
+        is(services[0].type, dummyType1, 'expected service type');
+        resolve(services);
+      });
+    });
+    testAddServiceRecords(fakeServices[0]);
+    return promise;
+  }).then(function(services) {
+    info('STEP 2 - remove existed service');
+    var promise1 = new Promise(function(resolve, reject) {
+      services[0].addEventListener('unavailable', function _unavailable(e) {
+        services[0].removeEventListener('unavailable', _unavailable);
+        is(e.type, 'unavailable', 'receive unavailable event');
+        is(services[0].online, false, 'expect service offline');
+        resolve(services[0]);
+      });
+    });
+    var promise2 = new Promise(function(resolve, reject) {
+      services.addEventListener('servicelost', function _servicelost(e) {
+        services.removeEventListener('servicelost', _servicelost);
+        is(e.type, 'servicelost', 'receive servicelost event');
+        is(services.servicesAvailable, 0, 'expect 0 service available');
+        resolve(services);
+      });
+    });
+    window.testRemoveServiceRecords(fakeServices[0].id);
+    return Promise.all([promise1, promise2]);
+  }).then(function([service, services]) {
+    info('STEP 3 - add another service and service recover');
+    var promise1 = new Promise(function(resolve, reject) {
+      service.addEventListener('available', function _available(e) {
+        service.removeEventListener('available', _available);
+        is(e.type, 'available', 'receive available event');
+        is(service.online, true, 'expect service online');
+        resolve(service);
+      });
+    });
+    var promise2 = new Promise(function(resolve, reject) {
+      var count = 0;
+      services.addEventListener('servicefound', function _servicefound(e) {
+        count++;
+        is(e.type, 'servicefound', 'receive servicefound event');
+        is(services.length, 2, 'expected 2 active services');
+        is(services.servicesAvailable, count, 'expect ' + count + ' service available');
+        if (count === 1) {
+          testAddServiceRecords(fakeServices[0]);
+        } else if (count === 2) {
+          services.removeEventListener('servicefound', _servicefound);
+          resolve(services);
+        }
+      });
+    });
+    testAddServiceRecords(fakeServices[1]);
+    return Promise.all([promise1, promise2]);
+  }).then(function([service, services]) {
+    info('STEP 4 - multiple types');
+    var promise = navigator.getNetworkServices([dummyType1, dummyType2])
+                  .then(function(services) {
+                    var promise2 = new Promise(function(resolve, reject) {
+                      services.addEventListener('servicefound', function _servicefound(e) {
+                        services.removeEventListener('servicefound', _servicefound);
+                        is(e.type, 'servicefound', 'recieve servicefound event');
+                        is(services.servicesAvailable, 3, 'expect 3 services available');
+                        resolve(services);
+                      });
+                    });
+                    testAddServiceRecords(fakeServices[2]);
+                    return promise2;
+                  });
+    return Promise.all([services, promise]);
+  }).then(function([services1, services2]) {
+    info('STEP 5 - multiple callbacks');
+    var promise1 = new Promise(function(resolve, reject) {
+      services1.addEventListener('servicefound', function _servicefound(e) {
+        services1.removeEventListener('servicefound', _servicefound);
+        is(e.type, 'servicefound', 'receive servicefound event on service1');
+        is(services1.servicesAvailable, 3, 'expect 3 services available for service1');
+        resolve(services1);
+      });
+    });
+    var promise2 = new Promise(function(resolve, reject) {
+      services2.addEventListener('servicefound', function _servicefound(e){
+        services2.removeEventListener('servicefound', _servicefound);
+        is(e.type, 'servicefound', 'receive servicefound event on service2');
+        is(services2.servicesAvailable, 4, 'expect 4 services available for service2');
+        resolve(services2);
+      });
+    });
+    testAddServiceRecords(fakeServices[3]);
+    return Promise.all([promise1, promise2]);
+  }).then(function() {
+    info('test finished');
+  });
+
+}
+
+</script>
+</head>
+<body onload="runTest();">
+<p id="display"></p>
+<div id="content" style="display: none"></div>
+<pre id="test">
+</pre>
+</body>
+</html>
+

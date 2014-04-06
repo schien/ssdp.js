@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <specVersion>
+    <major>1</major>
+    <minor>0</minor>
+  </specVersion>
+
+  <device>
+    <deviceType>urn:schemas-upnp-org:device:BinaryLight:1</deviceType>
+    <friendlyName>Kitchen Lights</friendlyName>
+    <manufacturer>OpenedHand</manufacturer>
+    <modelName>Virtual Light</modelName>
+    <UDN>uuid:85d06f83-c967-428a-a0df-bf30cb4f4920</UDN>
+                          
+    <serviceList>
+      <service>
+        <serviceType>urn:schemas-upnp-org:service:dummy:1</serviceType>
+        <serviceId>urn:upnp-org:serviceId:dummy:1</serviceId>
+        <SCPDURL>/dummy1.xml</SCPDURL>
+        <controlURL>/dummy1/Control</controlURL>
+        <eventSubURL>/dummy1/Event</eventSubURL>
+      </service>
+    </serviceList>
+  </device>
+</root>
