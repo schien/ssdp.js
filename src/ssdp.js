@@ -68,6 +68,7 @@
       if (this._searchSocket) {
         // This will call onStopListening.
         this._searchSocket.close();
+        delete this._searchSocket;
       }
     },
     _onmessage: function _onmessage(msg) {
