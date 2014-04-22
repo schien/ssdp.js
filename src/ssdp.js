@@ -51,7 +51,8 @@
 
       // create socket if not exist
       if (!this._searchSocket) {
-        this._searchSocket = new UDPSocket({"localPort":SSDP_PORT});
+        this._searchSocket = new UDPSocket();
+        this._searchSocket.joinMulticastGroup(SSDP_ADDRESS);
         this._searchSocket.onmessage = this._onmessage.bind(this);
       }
 
