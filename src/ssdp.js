@@ -72,10 +72,11 @@
         delete this._searchSocket;
       }
     },
-    _onmessage: function _onmessage(msg) {
+    _onmessage: function _onmessage(e) {
       // Listen for responses from specific targets. There could be more than one
       // available.
 
+      var msg = String.fromCharCode.apply(null, new Uint8Array(e.data));
       var lines = msg.toString().split("\r\n");
       var method = lines.shift().split(' ')[0];
       var headers = {};
