@@ -70,9 +70,6 @@ UDPSocket.prototype = {
     remoteAddress = remoteAddress || this.remoteAddress;
     remotePort = remotePort || this.remotePort;
     console.log('udp-socket::send');
-//    console.log('udp-socket::send to ' + remoteAddress + ':' + remotePort + ' - ' + data);
-    //XXX test code
-    window.testSend(data, remoteAddress, remotePort);
   },
 };
 
@@ -81,7 +78,6 @@ function runTest() {
 
   function testAddServiceRecords(records) {
     records = [].concat(records);
-    var msgs = [];
     records.forEach(function(record) {
       const msgNotify = 'HTTP/1.1 200 OK\r\n' +
                         'CACHE-CONTROL: max-age=10\r\n' +
@@ -89,13 +85,8 @@ function runTest() {
                         'LOCATION: ' + record.location + '\r\n' +
                         'ST: ' + record.type.substr(5) + '\r\n' +
                         'USN: uuid:device-UUID::upnp:rootdevice\r\n';
-      msgs.push(msgNotify);
+      window.testOnMessage(msgNotify);
     });
-    window.testSend = function(data, address, port) {
-      msgs.forEach(function(msg) {
-        window.testOnMessage(msg);
-      });
-    };
   }
 
   const dummyType1 = 'upnp:urn:schemas-upnp-org:service:dummy:1';
