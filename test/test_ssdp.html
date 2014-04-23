@@ -9,6 +9,7 @@
 
 // XXX fake udp socket api for test
 function UDPSocket(options) {
+  options = options || {};
   this._addressReuse = options.addressReuse || true;
   this._localAddress = options.localAddress || '127.0.0.1';
   this._localPort = options.localPort || 0;
