@@ -4,7 +4,7 @@
 -->
 <head>
   <title>Test for SSDP.js</title>
-  <script type="text/javascript" src="https://raw.githubusercontent.com/schien/ssdp.js/master/src/ssdp.js"></script>
+  <script type="text/javascript" src="../src/ssdp.js"></script>
 <script type="text/javascript">
 
 // XXX fake udp socket api for test
@@ -95,7 +95,6 @@ function runTest() {
         window.testOnMessage(msg);
       });
     };
-    SSDPService.search();
   }
 
   const dummyType1 = 'upnp:urn:schemas-upnp-org:service:dummy:1';

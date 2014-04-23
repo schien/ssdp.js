@@ -103,27 +103,27 @@
           // walk through root device and all the embedded devices
           var devices = xhr.responseXML.querySelectorAll('device');
           for (var i = 0; i < devices.length; i++) {
-            this._parseDescriptor(devices[i]);
+            this._parseDescriptor(devices[i], aService.location);
           }
         }
       }).bind(this), false);
 
       xhr.send(null);
     },
-    _parseDescriptor: function _parseDescriptor(device) {
+    _parseDescriptor: function _parseDescriptor(device, refUrl) {
       var udn = device.querySelector("UDN").innerHTML;
 
       var serviceList = device.querySelector('serviceList').querySelectorAll('service');
       for (var i = 0; i < serviceList.length; i++) {
         var service = serviceList[i];
         var serviceId = service.querySelector('serviceId').innerHTML;
-        var eventsUrl = service.querySelector('eventSubURL');
+        var eventsUrl = this._getAbsoluteURL(service.querySelector('eventSubURL'), refUrl);
         var options = {};
         options.id = udn + '::' + serviceId;
         options.deviceId = udn;
         options.name = serviceId;
         options.type = 'upnp:' + service.querySelector('serviceType').innerHTML;
-        options.url = service.querySelector('controlURL').innerHTML;
+        options.url = this._getAbsoluteURL(service.querySelector('controlURL').innerHTML, refUrl);
         options.config = device.outerHTML;
         if (eventsUrl) {
           options.eventsUrl = eventsUrl.innerHTML;
@@ -132,6 +132,14 @@
         serviceHelper.add(new SSDPServiceRecord(options));
       }
     },
+    _getAbsoluteURL: function _getAbsoluteURL(url, refUrl) {
+      if (/^https?:\/\//.test(url)) {
+        return url;
+      } else {
+        var absURL = new URL(url, refUrl);
+        return absURL.toString();
+      }
+    }
   };
 
   //export SSDP service
@@ -409,8 +417,13 @@
   var availableServiceRecords = []; // list of NetworkService
   var activeServiceManagers = []; // list of NetworkServices //XXX need weak reference
   var targetRegister = {
-    'upnp:': function(target) {
-      SimpleServiceDiscovery.registerTarget(target.substr(5)); // remove upnp: prefix
+    'upnp:': {
+      register: function(target) {
+        SimpleServiceDiscovery.registerTarget(target.substr(5)); // remove upnp: prefix
+      },
+      search: function() {
+        SimpleServiceDiscovery.search();
+      }
     },
   };
 
@@ -423,11 +436,19 @@
     }
 
     function _register(types) {
+      var needSearch = {};
       types.forEach(function(type) {
         var found = Object.keys(targetRegister).find(function(prefix) { return type.startsWith(prefix); });
         if (found) {
-          targetRegister[found].call(null, type);
+          targetRegister[found].register(type);
+          if (!needSearch.hasOwnProperty(found)) {
+            needSearch[found] = true;
+          }
         }
+      });
+      // trigger search on the discovery service if new search target is registered
+      Object.keys(needSearch).forEach(function(type) {
+        targetRegister[type].search();
       });
     }
 
