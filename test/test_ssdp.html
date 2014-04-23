@@ -73,6 +73,12 @@ UDPSocket.prototype = {
   },
 };
 
+function UDPMessageEvent(options) {
+  options = options || {};
+  this.data = options.data || new ArrayBuffer(0);
+  this.remoteAddress = options.remoteAddress || '';
+  this.remotePort = options.remotePort || 0;
+}
 
 function runTest() {
 
@@ -85,7 +91,13 @@ function runTest() {
                         'LOCATION: ' + record.location + '\r\n' +
                         'ST: ' + record.type.substr(5) + '\r\n' +
                         'USN: uuid:device-UUID::upnp:rootdevice\r\n';
-      window.testOnMessage(msgNotify);
+      var data = new ArrayBuffer(msgNotify.length);
+      var u8array = new Uint8Array(data);
+      for (var i = 0; i < msgNotify.length; i++) {
+        u8array[i] = msgNotify.charCodeAt(i);
+      }
+      var event = new UDPMessageEvent({data: data});
+      window.testOnMessage(event);
     });
   }
 
