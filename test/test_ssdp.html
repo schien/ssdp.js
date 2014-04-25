@@ -82,6 +82,15 @@ function UDPMessageEvent(options) {
 
 function runTest() {
 
+  function createUDPMessageEvent(msg) {
+    var data = new ArrayBuffer(msg.length);
+    var u8array = new Uint8Array(data);
+    for (var i = 0; i < msg.length; i++) {
+      u8array[i] = msg.charCodeAt(i);
+    }
+    return new UDPMessageEvent({data: data});
+  }
+
   function testAddServiceRecords(records) {
     records = [].concat(records);
     records.forEach(function(record) {
@@ -91,13 +100,18 @@ function runTest() {
                         'LOCATION: ' + record.location + '\r\n' +
                         'ST: ' + record.type.substr(5) + '\r\n' +
                         'USN: uuid:device-UUID::upnp:rootdevice\r\n';
-      var data = new ArrayBuffer(msgNotify.length);
-      var u8array = new Uint8Array(data);
-      for (var i = 0; i < msgNotify.length; i++) {
-        u8array[i] = msgNotify.charCodeAt(i);
-      }
-      var event = new UDPMessageEvent({data: data});
-      window.testOnMessage(event);
+      window.testOnMessage(createUDPMessageEvent(msgNotify));
+    });
+  }
+
+  function testRemoveServiceRecords(records) {
+    records = [].concat(records);
+    records.forEach(function(record) {
+      const msgByebye = 'NOTIFY * HTTP/1.1\r\n' +
+                        'NT: ' + record.type + '\r\n' +
+                        'NTS: ssdp:byebye\r\n' +
+                        'USN: ' + record.id + '\r\n';
+      window.testOnMessage(createUDPMessageEvent(msgByebye));
     });
   }
 
@@ -113,7 +127,7 @@ function runTest() {
       url: '/dummy1/Control',
       deviceId: 'uuid:bc0997f2-d613-43b1-93f5-03d7f3a86f30',
       eventsUrl: '/dummy1/Event',
-      location: origin + '/schien/ssdp.js/master/test/dummy1-desc-1.xml',
+      location: (new URL('dummy1-desc-1.xml', location.href)).toString(),
     },
     {
       id: 'uuid:7fae0ee7-87ba-4e44-a286-fcaef39be0d1::urn:upnp-org:serviceId:dummy:1',
@@ -121,7 +135,7 @@ function runTest() {
       type: dummyType1,
       url: '/dummy1/Control',
       deviceId: 'uuid:7fae0ee7-87ba-4e44-a286-fcaef39be0d1',
-      location: origin + '/schien/ssdp.js/master/test/dummy1-desc-2.xml',
+      location: (new URL('dummy1-desc-2.xml', location.href)).toString(),
     },
     {
       id: 'uuid:cc93d8e6-6b8b-4f60-87ca-228c36b5b0e8::urn:upnp-org:serviceId:dummy:2',
@@ -129,7 +143,7 @@ function runTest() {
       type: dummyType2,
       url: '/dummy2/Control',
       deviceId: '/dummy2/Event',
-      location: origin + '/schien/ssdp.js/master/test/dummy2-desc-1.xml',
+      location: (new URL('dummy2-desc-1.xml', location.href)).toString(),
     },
     {
       id: 'uuid:85d06f83-c967-428a-a0df-bf30cb4f4920::urn:upnp-org:serviceId:dummy:1',
@@ -138,7 +152,7 @@ function runTest() {
       url: '/dummy1/Control',
       deviceId: 'uuid:85d06f83-c967-428a-a0df-bf30cb4f4920',
       eventsUrl: '/dummy1/Event',
-      location: origin + '/schien/ssdp.js/master/test/dummy1-desc-3.xml',
+      location: (new URL('dummy1-desc-3.xml', location.href)).toString(),
     },
   ];
 
@@ -190,7 +204,7 @@ function runTest() {
         resolve(services);
       });
     });
-    window.testRemoveServiceRecords(fakeServices[0].id);
+    testRemoveServiceRecords(fakeServices[0]);
     return Promise.all([promise1, promise2]);
   }).then(function([service, services]) {
     info('STEP 3 - add another service and service recover');

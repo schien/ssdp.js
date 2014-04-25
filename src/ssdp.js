@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
   * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-(function() {
+(function(global) {
   // Spec information:
   // http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v1.1.pdf
 
@@ -18,8 +18,12 @@
     "MX: " + SSDP_DISCOVER_MX + "\r\n" +
     "ST: %SEARCH_TARGET%\r\n\r\n";
 
+  const SSDP_RESPONSE_HEADER = /HTTP\/\d{1}\.\d{1} \d+ .*/;
+  const SSDP_HEADER = /^([^:]+):\s*(.*)$/;
+
   var SimpleServiceDiscovery = {
     _targets: [],
+    _commands: {},
     search: function _search(aInterval) {
       aInterval = aInterval || 0;
       if (aInterval > 0) {
@@ -78,7 +82,9 @@
 
       var msg = String.fromCharCode.apply(null, new Uint8Array(e.data));
       var lines = msg.toString().split("\r\n");
-      var method = lines.shift().split(' ')[0];
+      var firstLine = lines.shift();
+      var method = SSDP_RESPONSE_HEADER.test(firstLine) ? 'RESPONSE'
+                                                        : firstLine.split(' ')[0].toUpperCase();
       var headers = {};
       lines.forEach(function (line) {
         if (line.length) {
@@ -88,8 +94,8 @@
           }
         }
       });
-      if (headers.location && this._targets.indexOf(headers.st) >= 0) {
-        this._found(headers);
+      if (this._commands[method]) {
+        this._commands[method].apply(this, [headers]);
       }
     },
     _found: function _found(aService) {
@@ -142,11 +148,22 @@
     }
   };
 
-  //export SSDP service
-  window.SSDPService = {
-    registerTarget: SimpleServiceDiscovery.registerTarget.bind(SimpleServiceDiscovery),
-    search: SimpleServiceDiscovery.search.bind(SimpleServiceDiscovery),
-    stopSearch: SimpleServiceDiscovery.stopSearch.bind(SimpleServiceDiscovery),
+  SimpleServiceDiscovery._commands['RESPONSE'] = function _response(headers) {
+    if (headers.location && this._targets.indexOf(headers.st) >= 0) {
+      this._found(headers);
+    }
+  };
+  SimpleServiceDiscovery._commands['NOTIFY'] = function _notify(headers) {
+    switch(headers.nts) {
+      case 'ssdp:alive':
+        this._commands['RESPONSE'].apply(this, [headers]);
+        break;
+      case 'ssdp:byebye':
+        serviceHelper.remove(new SSDPServiceRecord({id: headers.usn}));
+        break;
+    }
+  };
+  SimpleServiceDiscovery._commands['M-SEARCH'] = function _msearch(headers) {
   };
 
   function SSDPServiceRecord(options) {
@@ -427,7 +444,7 @@
     },
   };
 
-  navigator.getNetworkServices = function getNetworkServices(type) {
+  function getNetworkServices(type) {
     const UNKNOWN_TYPE_PREFIX_ERR = 'UnknownTypePrefixError';
     const PERMISSION_DENIED_ERR = 'PermissionDeniedError';
 
@@ -492,13 +509,12 @@
     });
   }
 
-  window.addEventListener('unload', function() {
+  // export NetworkServices and NetworkServices as pre-defined types
+  global.NetworkService = NetworkService;
+  global.NetworkServices = NetworkServices;
+  navigator.getNetworkServices = getNetworkServices;
+
+  global.addEventListener('unload', function() {
     delete navigator.getNetworkServices;
   });
-
-  // XXX for test
-  window.testRemoveServiceRecords = function(id) {
-    var record = {id: id};
-    serviceHelper.remove(record);
-  };
-})();
+})(window);
