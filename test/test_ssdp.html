@@ -156,18 +156,26 @@ function runTest() {
     },
   ];
 
+  function appendResult(str, type) {
+    var item = document.createElement('li');
+    item.classList.add(type);
+    item.innerHTML = str;
+    document.querySelector('#results > ul').appendChild(item);
+  }
   function is(value, expect, str) {
     var prefix = 'TEST-PASS';
+    var type = 'pass';
     if (value !== expect) {
       prefix = 'TEST-FAIL';
+      type = 'fail';
     }
-    console.log(prefix + ' - ' + str + ': ' + value + ', ' + expect);
+    appendResult(prefix + ' - ' + str + ': ' + value + ', ' + expect, type);
   }
   function info(str) {
-    console.log('TEST-INFO - ' + str);
+    appendResult('TEST-INFO - ' + str, 'info');
   }
   function error( e ) {
-    console.log( "Error occurred: " + e.name );
+    appendResult( "Error occurred: " + e.name, 'fail' );
   }
 
   navigator.getNetworkServices(dummyType1)
@@ -276,12 +284,25 @@ function runTest() {
 }
 
 </script>
+<style>
+#results li.info {
+  color: blue;
+}
+
+#results li.pass {
+  color: green;
+}
+
+#results li.fail {
+  color: red;
+  font-weight: bold;
+}
+</style>
 </head>
 <body onload="runTest();">
-<p id="display"></p>
-<div id="content" style="display: none"></div>
-<pre id="test">
-</pre>
+  <div id="results">
+    <ul></ul>
+  </div>
 </body>
 </html>
 
