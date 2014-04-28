@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script type="text/javascript" src="ssdp.js"></script>
+  <script type="text/javascript" src="plug.upnp.js"></script>
+  <script type="text/javascript" src="plug.upnp_contentdirectory.js"></script>
+  <script type="text/javascript" src="service_manager.js"></script>
+  <link rel="stylesheet" href="service_manager.css" type="text/css">
+</head>
+<body>
+  <h1>Plug.UPnP_ContentDirectory Example: Getting a Media Server's UpdateId</h1>
+  <div id="folderList"></div>
+  <div id="debug"></div>
+  <audio id="audioPlayer" class="player" controls="true"></audio>
+  <video id="videoPlayer" class="player" controls="true"></video>
+  <img id="imagePlayer" class="player"></img>
+  <div id="controlButtons">
+    <button id="discoverButton">discover</button>
+    <button id="playerToggler">hide/show</button>
+    <button id="audioToggler">music</button>
+    <button id="videoToggler">video</button>
+    <button id="imageToggler">image</button>
+  </div>
+</body>
+</html>
