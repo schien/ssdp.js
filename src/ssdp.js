@@ -55,7 +55,7 @@
 
       // create socket if not exist
       if (!this._searchSocket) {
-        this._searchSocket = new UDPSocket();
+        this._searchSocket = new UDPSocket({loopback: true});
         this._searchSocket.joinMulticastGroup(SSDP_ADDRESS);
         this._searchSocket.onmessage = this._onmessage.bind(this);
       }
@@ -100,7 +100,7 @@
     },
     _found: function _found(aService) {
       // Use the REST api to request more information about this service
-      var xhr = new XMLHttpRequest();
+      var xhr = new XMLHttpRequest({mozSystem: true});
       xhr.open("GET", aService.location, true);
       xhr.overrideMimeType("text/xml");
 
