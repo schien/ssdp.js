@@ -827,7 +827,7 @@
     var pool = [];
     return {
         get: function () {
-            return pool.pop() || new XMLHttpRequest();
+            return pool.pop() || new XMLHttpRequest({mozSystem: true});
         },
         release: function( xhr ) {
             xhr.onreadystatechange = function () {};
