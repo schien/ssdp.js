@@ -60,13 +60,15 @@
         this._searchSocket.onmessage = this._onmessage.bind(this);
       }
 
-      // Perform a UDP broadcast to search for SSDP devices
-      this._searchTimeout = setTimeout(this._searchShutdown.bind(this), SSDP_DISCOVER_MX * 1000);
+      this._searchSocket.opened.then((function() {
+        // Perform a UDP broadcast to search for SSDP devices
+        this._searchTimeout = setTimeout(this._searchShutdown.bind(this), SSDP_DISCOVER_MX * 1000);
 
-      var data = SSDP_DISCOVER_PACKET;
-      this._targets.forEach((function(target) {
-        var msgData = data.replace("%SEARCH_TARGET%", target);
-        var ok = this._searchSocket.send(msgData, SSDP_ADDRESS, SSDP_PORT);
+        var data = SSDP_DISCOVER_PACKET;
+        this._targets.forEach((function(target) {
+          var msgData = data.replace("%SEARCH_TARGET%", target);
+          var ok = this._searchSocket.send(msgData, SSDP_ADDRESS, SSDP_PORT);
+        }).bind(this));
       }).bind(this));
     },
     _searchShutdown: function _searchShutdown() {
